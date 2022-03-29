@@ -1,3 +1,20 @@
+# About Terraspace
+
+### New concepts
+
+- Stack
+- Tfvars Layering
+
+### Conventions over Configuration
+
+Codes are organized to these main folders. (Reference: [Project Structure](https://terraspace.cloud/docs/intro/structure/))
+
+- `app/modules`
+- `app/stacks`
+- `config/terraform`
+
+Override things in these folders as necessary.
+
 # How to use this template
 
 Using Terraspace to provision infrastructure on AWS.
@@ -20,8 +37,8 @@ Using VS Code Remote Containers.
 ```
 cd infra
 bundle install
-terraspace up demo -y
-terraspace down demo -y
+TS_ENV=demo terraspace up demo
+TS_ENV=demo terraspace down demo
 ```
 
 # GitHub Actions Workflows

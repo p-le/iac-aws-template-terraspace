@@ -1,47 +1,62 @@
-name: Destroy Infrastructure
+name: Terraspace Apply
 
-on: workflow_dispatch
-
+# Default: Manually trigger. Please change to other events if needed
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Set TS_ENV to execute Terraspace"
+        required: true
+        type: choice
+        options: # Add more environment if needed
+          - demo
 jobs:
-  destroy:
-    name: Terraform
+  apply:
+    name: Terraspace
     runs-on: ubuntu-latest
-    environment: development
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      TS_ENV: ${{ github.event.inputs.target_env }}
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
-        working-directory: ./src
+        working-directory: infra
 
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout
         uses: actions/checkout@v2
 
-      # Install the latest version of AWS CLI and setup Access Key and Secret Access Key
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
+          ruby-version: "3.1"
 
-      # Install the latest version of Terraform CLI
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          cli_config_credentials_token: ${{ secrets.TERRAFORM_CLOUD_API_TOKEN }}
+      - name: Install Terraform and Terraspace
+        run: |
+          brew install tfenv
+          tfenv install
+          gem install terraspace
 
-      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-      - name: Terraform Init
-        run: terraform init
+      - name: Check Versions
+        run: |
+          terraspace --version
+          terraform --version
 
-      # Create input variables from Environment Secret
-      # NOTE: Avoid terraform.tfvars
-      - name: Setup Terraform variables
-        run: cp terraform.tfvars.example terraform.auto.tfvars
+      - name: Install dependencies
+        run: |
+          bundle install
 
-      # Destroy deployed Infrastructure on AWS
-      - name: Terraform destroy
-        run: terraform destroy -auto-approve
+      - name: Decode/Retrieve terraform.tfvars from Secrets
+        run: |
+          echo "${{ secrets.TERRAFORM_TFVARS }}" | base64 --decode > terraform.tfvars
+        working-directory: ./infra/config/terraform
+
+      # NOTE: Destroy infrastructure changes without approval.
+      - name: Destroy
+        run: |
+          terraspace down demo -y

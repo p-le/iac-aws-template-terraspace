@@ -1,0 +1,65 @@
+name: Terraspace Plan & Validate
+
+# Default: Manually trigger. Please change to other events if needed
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Set TS_ENV to execute Terraspace"
+        required: true
+        type: choice
+        options: # Add more environment if needed
+          - demo
+jobs:
+  plan_validate:
+    name: Terraspace
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      TS_ENV: ${{ github.event.inputs.target_env }}
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: infra
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.1"
+
+      - name: Install Terraform and Terraspace
+        run: |
+          brew install tfenv
+          tfenv install
+          gem install terraspace
+
+      - name: Check Versions
+        run: |
+          terraspace --version
+          terraform --version
+
+      - name: Install dependencies
+        run: |
+          bundle install
+
+      - name: Decode/Retrieve terraform.tfvars from Secrets
+        run: |
+          echo "${{ secrets.TERRAFORM_TFVARS }}" | base64 --decode > terraform.tfvars
+        working-directory: ./infra/config/terraform
+
+      - name: Validate Terraform Modules
+        run: |
+          terraspace validate demo
+
+      - name: Prepare Terraform Plan
+        run: |
+          terraspace plan demo
