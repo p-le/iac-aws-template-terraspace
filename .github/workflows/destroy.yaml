@@ -1,4 +1,4 @@
-name: Terraspace Apply
+name: Terraspace Destroy
 
 # Default: Manually trigger. Please change to other events if needed
 on:
@@ -11,7 +11,7 @@ on:
         options: # Add more environment if needed
           - demo
 jobs:
-  apply:
+  destroy:
     name: Terraspace
     runs-on: ubuntu-latest
     env:
