@@ -41,16 +41,12 @@ jobs:
         run: |
           brew install tfenv
           tfenv install
-          gem install terraspace
+          bundle install
 
       - name: Check Versions
         run: |
           terraspace --version
           terraform --version
-
-      - name: Install dependencies
-        run: |
-          bundle install
 
       - name: Decode/Retrieve terraform.tfvars from Secrets
         run: |
